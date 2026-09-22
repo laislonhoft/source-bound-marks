@@ -1,0 +1,16 @@
+name: Check module
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/*.test.mjs
+      - run: node --check scripts/main.mjs && node --check scripts/spells.mjs && node --check scripts/core.mjs

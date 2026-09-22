@@ -1,0 +1,7 @@
+{
+  "name": "Aplicar marca",
+  "type": "script",
+  "img": "icons/svg/target.svg",
+  "scope": "global",
+  "command": "await game.modules.get(\"source-bound-marks\").api.openMenu();"
+}

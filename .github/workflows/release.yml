@@ -1,0 +1,36 @@
+name: Package Foundry module
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/*.test.mjs
+      - name: Build manifest and ZIP
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const manifest = JSON.parse(fs.readFileSync('module.json', 'utf8'));
+          const tag = process.env.RELEASE_TAG;
+          if (tag !== `v${manifest.version}`) throw new Error('Release tag must match module.json version');
+          const base = `https://github.com/${process.env.GITHUB_REPOSITORY}`;
+          manifest.url = base;
+          manifest.manifest = `${base}/releases/latest/download/module.json`;
+          manifest.download = `${base}/releases/download/${tag}/source-bound-marks.zip`;
+          fs.writeFileSync('module.json', JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+          zip -r source-bound-marks.zip module.json scripts macros README.md
+      - name: Upload installable assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" module.json source-bound-marks.zip --clobber
