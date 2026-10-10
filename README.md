@@ -1,7 +1,9 @@
 # Marcas Vinculadas — D&D 5e
 
-Versão 0.2.0. Módulo para Foundry VTT 14, sistema D&D 5e e Midi-QOL 14.
+Versão 0.3.0. Integração atualizada para Foundry VTT 14.368+, D&D 5e 6.x e Midi-QOL 14.6.0+.
 Interface em português. Sem compilação e sem bibliotecas adicionais às dependências do Midi-QOL.
+
+O Midi-QOL 14.6.0 exige também **DAE 14.6.0+**, socketlib e lib-wrapper. A linha Midi-QOL 14.0.x é para D&D 5e 5.x; a linha 13.x é para Foundry 13. Elas não atendem aos requisitos desta versão.
 
 ## Instalação
 
@@ -13,13 +15,13 @@ https://github.com/laislonhoft/source-bound-marks/releases/latest/download/modul
 
 O ZIP também está disponível na [página de releases](https://github.com/laislonhoft/source-bound-marks/releases). Para instalar manualmente:
 
-1. Feche o Foundry e extraia o ZIP dentro de `Data/modules` na pasta de dados do Foundry.
+1. Feche o Foundry. Crie a pasta `Data/modules/source-bound-marks` e extraia nela o ZIP da release (o `module.json` está na raiz do ZIP).
 2. Confira a estrutura: `Data/modules/source-bound-marks/module.json`.
 3. Reinicie o Foundry, abra o mundo D&D 5e e ative **Marcas Vinculadas — D&D 5e** em Gerenciar Módulos.
 4. Mantenha Midi-QOL e as dependências dele habilitados, com a automação de acertos, dano e concentração configurada conforme a mesa.
 5. Marque um alvo e use **Hunter's Mark** ou **Bestow Curse** diretamente na ficha. Não é necessário criar macro nem importar outra magia.
 
-Para atualizar a versão 0.1.0, extraia o novo ZIP sobre a pasta do módulo com o Foundry fechado. A macro antiga não é mais necessária para lançar as magias; pode ser mantida como alternativa manual:
+Para atualizar, use **Update** no módulo na tela de configuração do Foundry e reinicie o mundo para todos os jogadores. Na instalação manual, extraia o novo ZIP sobre a pasta do módulo com o Foundry fechado. Quem continua no D&D 5e 5.3.x deve manter a versão 0.2.0; a 0.3.0 requer o sistema 6.x. As marcas existentes não precisam ser recriadas: os dados de origem e concentração foram preservados. A macro antiga pode ser mantida como alternativa manual:
 
 ```js
 await game.modules.get("source-bound-marks").api.openMenu();
@@ -79,9 +81,9 @@ Desative qualquer automação que já acrescente o mesmo bônus dessa magia (mac
 
 ## Compatibilidade e validação
 
-Código conferido contra as APIs públicas do Foundry 14, D&D 5e 5.3.x e o ramo v14 do Midi-QOL. O manifesto declara Foundry mínimo 14, D&D 5e mínimo 5.3.0 e Midi-QOL mínimo 14.0.0. **Não houve execução dentro de uma instalação real do Foundry.** Não se declara uma versão `verified`; versões posteriores precisam de teste, e o Midi-QOL pode impor sua própria faixa de compatibilidade com D&D 5e.
+Código conferido contra as releases **Midi-QOL 14.6.0** e **D&D 5e 6.0.6**, em 10/10/2026. O manifesto exige Foundry 14.368–14.999, D&D 5e 6.0.0–6.999 e Midi-QOL 14.6.0–14.999. A versão 6.0.6 é a mais recente do sistema consultada; o próprio manifesto do Midi-QOL 14.6.0 declara verificação no sistema 6.0.5. **Não houve execução deste módulo dentro de uma instalação real do Foundry.** Não se declara `verified`; a faixa de instalação não garante compatibilidade com todas as versões futuras.
 
-Testes locais: `node --test tests/*.test.mjs`. São testes de lógica e integração simulada, não testes do aplicativo Foundry nem do cálculo real de resistências.
+Testes locais: `node --test tests/*.test.mjs`. Os 42 testes cobrem lógica e integração simulada, incluindo cartões 6.x, nível real da conjuração, concentração nova após reconjuração, resistência e execução pelo mestre. Não substituem testes do aplicativo Foundry nem do cálculo real de resistências.
 
 Roteiro para validar em um mundo de teste:
 
@@ -113,7 +115,7 @@ await game.modules.get("source-bound-marks").api.applyMark({
 
 - Foundry ActiveEffect: https://foundryvtt.com/api/classes/foundry.documents.ActiveEffect.html
 - Foundry DialogV2: https://foundryvtt.com/api/classes/foundry.applications.api.DialogV2.html
-- D&D 5e DamageRoll: https://github.com/foundryvtt/dnd5e/blob/5.3.x/module/dice/damage-roll.mjs
-- Midi-QOL Workflow: https://gitlab.com/tposney/midi-qol/-/blob/v14/src/module/Workflow.ts
+- D&D 5e cartões: https://github.com/foundryvtt/dnd5e/blob/release-6.0.6/module/documents/chat-message.mjs
+- Midi-QOL Workflow: https://gitlab.com/tposney/midi-qol/-/blob/v14.6.0/src/module/Workflow.ts
 
 O módulo usa `midi-qol.RollComplete` para a aplicação, `midi-qol.DamageRollComplete` e `workflow.setBonusDamageRolls` para o dano. A solicitação de marca é salva na mensagem de uso; o mestre ativo a processa uma vez. Não modifica diretamente os PV nem instala macros nas magias originais. Solicitações com falha mostram o motivo no cliente que detectou a falha; não são reaplicadas retroativamente ao abrir o mundo.

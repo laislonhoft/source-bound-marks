@@ -1,4 +1,5 @@
 import { ID, PRESETS, spellProfile, castDuration, validEffect } from "./core.mjs";
+import { cardItem, cardActivity, cardConcentrationId, cardLevel, recordedTarget, failedCardSave } from "./compat.mjs";
 
 const uuidOf = token => token.document?.uuid ?? token.uuid;
 const profileOf = item => spellProfile(item, game.settings.get(ID, "hunterDefault"));
@@ -14,7 +15,7 @@ export function initializeSettings() {
 }
 
 export async function requestFromSpell(workflow) {
-  if (workflow.aborted || completed.has(workflow)) return;
+  if (workflow.aborted || workflow.abort || completed.has(workflow)) return;
   const profile = profileOf(workflow.item);
   if (!profile) return;
   const targets = [...(workflow.targets ?? [])];
@@ -52,31 +53,32 @@ export async function processSpellRequest(message, userId, applyMark) {
   const request = message.flags?.[ID]?.request;
   if (!request) return;
   const author = message.author ?? message.user;
-  if (!author || author.id !== userId) throw new Error("A solicitação deve vir do autor da magia.");
-  const itemUuid = message.flags?.dnd5e?.item?.uuid;
-  if (!itemUuid || itemUuid !== request.itemUuid) throw new Error("A magia não corresponde à mensagem de uso.");
-  const item = await fromUuid(itemUuid);
+  if (!author || (author.id !== userId && !game.users.get?.(userId)?.isGM)) throw new Error("A solicitação deve vir do autor da magia ou do mestre.");
+  const item = await cardItem(message);
+  if (!item || item.uuid !== request.itemUuid) throw new Error("A magia não corresponde à mensagem de uso.");
   const source = item?.actor;
   if (!source || !source.testUserPermission(author, "OWNER")) throw new Error("O autor não controla o conjurador.");
   const profile = profileOf(item);
   if (!profile || profile !== request.profile) throw new Error("O perfil da magia mudou ou está desativado.");
-  const activity = item.system.activities.get(request.activityId);
-  if (!activity) throw new Error("Atividade da magia não encontrada.");
+  const activity = cardActivity(message, item);
+  if (!activity || activity.id !== request.activityId || (activity.item && activity.item.uuid !== item.uuid)) throw new Error("Atividade da magia não corresponde à mensagem de uso.");
+  if (Array.isArray(message.system?.targets) && !recordedTarget(message, request.targetUuid)) {
+    throw new Error("O alvo não está registrado na mensagem da magia.");
+  }
   if (profile === "curse" && !activity.save) throw new Error("A maldição não tem teste de resistência configurado.");
   if (activity.save) {
-    const failed = message.flags?.["midi-qol"]?.failedSaveUuids;
-    if (!request.failedSave || !Array.isArray(failed) || !failed.includes(request.targetUuid)) {
+    if (!request.failedSave || !failedCardSave(message, request.targetUuid)) {
       throw new Error("Não há uma resistência falha registrada para esse alvo.");
     }
   }
   const token = await fromUuid(request.targetUuid);
   if (token?.documentName !== "Token" || !token.actor) throw new Error("Alvo da magia não encontrado.");
-  const level = Number(message.system?.spellLevel ?? message.flags?.dnd5e?.use?.spellLevel ?? item.system.level);
+  const level = cardLevel(message, item);
   if (!Number.isInteger(level) || level < 1 || level > 9) throw new Error("Nível de conjuração inválido.");
   let concentrationUuid = null;
   const needsConcentration = profile !== "curse" || level < 5;
   if (needsConcentration) {
-    const concentrationId = message.flags?.dnd5e?.use?.concentrationId;
+    const concentrationId = cardConcentrationId(message);
     const concentration = source.effects.get(concentrationId);
     if (!concentration?.statuses?.has("concentrating") || !validEffect(concentration, game.time.worldTime)) {
       throw new Error("Concentração da magia não encontrada. Ative a concentração ao lançar e tente novamente.");
@@ -122,6 +124,8 @@ export function registerAutomatic({ applyMark, report }) {
   let queue = Promise.resolve();
   Hooks.on("midi-qol.RollComplete", workflow => requestFromSpell(workflow).catch(report));
   Hooks.on("updateChatMessage", (message, changes, options, userId) => {
+    const requested = changes.flags?.[ID]?.request ?? changes[`flags.${ID}.request`];
+    if (!requested) return; // Ignore Midi's unrelated chat updates and our result write.
     if (game.users.activeGM?.id !== game.user.id || !message.flags?.[ID]?.request || message.flags?.[ID]?.result) return;
     queue = queue.then(() => processSpellRequest(message, userId, applyMark)).catch(report);
   });

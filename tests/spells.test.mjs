@@ -11,8 +11,10 @@ function setup(profile = "hunter2024", level = 1) {
   const item = { uuid: "Actor.c.Item.spell", actor: source, name: profile === "curse" ? "Bestow Curse" : "Hunter's Mark", type: "spell",
     flags: {}, system: { level, source: { rules: "2024" }, activities: new Map([[activity.id, activity]]) } };
   const token = { uuid: "Scene.s.Token.t", documentName: "Token", actor: { uuid: "Actor.t" } };
-  const message = { uuid: "ChatMessage.cast", author: user, system: { spellLevel: level },
-    flags: { dnd5e: { item: { uuid: item.uuid }, use: { concentrationId: "conc" } }, "midi-qol": { failedSaveUuids: [token.uuid] } },
+  const message = { uuid: "ChatMessage.cast", author: user,
+    system: { level, item: { uuid: item.uuid }, activity: { id: activity.id }, concentration: "conc", targets: [{ token: token.uuid, saved: false }] },
+    getAssociatedItem: () => item, getAssociatedActivity: () => activity,
+    flags: { "midi-qol": { failedSaveUuids: [token.uuid] } },
     async setFlag(scope, key, value) { (this.flags[scope] ??= {})[key] = value; } };
   const workflow = { item, activity, chatCard: message, targets: new Set([token]), failedSaves: new Set([token]) };
   globalThis.game = { user: { id: "gm" }, users: { activeGM: { id: "gm" } }, time: { worldTime: 100 }, settings: { get: () => "hunter2024" } };
@@ -98,4 +100,77 @@ test("GM checks persisted failed save instead of trusting the requested curse", 
 test("secondary GM does not duplicate the effect", async () => {
   const { workflow, message, apply, applied } = setup(); await requestFromSpell(workflow);
   game.user.id = "another-gm"; await processSpellRequest(message, "player", apply); assert.equal(applied.length, 0);
+});
+
+test("D&D 6 upcasting reads system.level instead of the item's base level", async () => {
+  const { workflow, message, item, apply, applied } = setup("curse", 3);
+  message.system.level = 9;
+  message.system.concentration = null;
+  await requestFromSpell(workflow); await processSpellRequest(message, "player", apply);
+  assert.equal(item.system.level, 3); assert.equal(applied[0].seconds, null); assert.equal(applied[0].concentrationUuid, null);
+});
+test("current concentration wins over stale pre-6 flags", async () => {
+  const { workflow, message, apply } = setup();
+  message.flags.dnd5e = { use: { concentrationId: "conc" } };
+  message.system.concentration = null;
+  await requestFromSpell(workflow);
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /Concentração/);
+});
+test("recast binds the new concentration, never the stale flag", async () => {
+  const { workflow, message, source, concentration, apply, applied } = setup();
+  source.effects.set("new-conc", { ...concentration, uuid: "Actor.c.ActiveEffect.new-conc" });
+  message.system.concentration = "new-conc";
+  message.flags.dnd5e = { use: { concentrationId: "conc" } };
+  await requestFromSpell(workflow); await processSpellRequest(message, "player", apply);
+  assert.equal(applied[0].concentrationUuid, "Actor.c.ActiveEffect.new-conc");
+});
+test("D&D 6 target save outcomes work without legacy MIDI save flags", async () => {
+  const { workflow, message, apply, applied } = setup("curse", 3);
+  delete message.flags["midi-qol"].failedSaveUuids;
+  await requestFromSpell(workflow); await processSpellRequest(message, "player", apply);
+  assert.equal(applied.length, 1);
+});
+test("a successful recorded save takes precedence over inconsistent failure flags", async () => {
+  const { workflow, message, apply } = setup("curse", 3);
+  message.system.targets[0].saved = true;
+  await requestFromSpell(workflow);
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /resistência falha/);
+});
+test("unknown save outcome never counts as a failed save", async () => {
+  const { workflow, message, apply } = setup("curse", 3);
+  delete message.flags["midi-qol"].failedSaveUuids;
+  delete message.system.targets[0].saved;
+  await requestFromSpell(workflow);
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /resistência falha/);
+});
+test("GM rejects an unrecorded target or a different activity", async () => {
+  const { workflow, message, apply } = setup(); await requestFromSpell(workflow);
+  message.flags[ID].request.targetUuid = "Scene.other.Token.other";
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /alvo não está registrado/);
+  message.flags[ID].request.activityId = "other";
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /Atividade/);
+});
+test("GM-executed workflow may apply a player's card after ownership validation", async () => {
+  const { workflow, message, apply, applied } = setup();
+  game.users.get = id => ({ isGM: id === "gm" });
+  await requestFromSpell(workflow); await processSpellRequest(message, "gm", apply);
+  assert.equal(applied.length, 1);
+});
+test("persisted Midi abort prevents marking", async () => {
+  const { workflow, message } = setup(); workflow.abort = true;
+  await requestFromSpell(workflow); assert.equal(message.flags[ID], undefined);
+});
+test("API-free cards resolve system item and activity references", async () => {
+  const { workflow, message, apply, applied } = setup();
+  delete message.getAssociatedItem; delete message.getAssociatedActivity;
+  await requestFromSpell(workflow); await processSpellRequest(message, "player", apply);
+  assert.equal(applied.length, 1);
+});
+test("legacy persisted usage cards remain readable after migration", async () => {
+  const { workflow, message, apply, applied } = setup();
+  message.flags.dnd5e = { item: message.system.item, activity: message.system.activity, use: { concentrationId: "conc", spellLevel: 1 } };
+  message.system = {};
+  delete message.getAssociatedItem; delete message.getAssociatedActivity;
+  await requestFromSpell(workflow); await processSpellRequest(message, "player", apply);
+  assert.equal(applied.length, 1);
 });

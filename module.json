@@ -2,15 +2,15 @@
   "id": "source-bound-marks",
   "title": "Marcas Vinculadas — D&D 5e",
   "description": "Marcas com dano adicional por origem e vínculo à concentração. Requer Midi-QOL.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "url": "https://github.com/laislonhoft/source-bound-marks",
   "manifest": "https://github.com/laislonhoft/source-bound-marks/releases/latest/download/module.json",
-  "download": "https://github.com/laislonhoft/source-bound-marks/releases/download/v0.2.0/source-bound-marks.zip",
-  "compatibility": { "minimum": "14" },
+  "download": "https://github.com/laislonhoft/source-bound-marks/releases/download/v0.3.0/source-bound-marks.zip",
+  "compatibility": { "minimum": "14.368", "maximum": "14.999" },
   "authors": [{ "name": "Source Bound Marks" }],
   "esmodules": ["scripts/main.mjs"],
   "relationships": {
-    "systems": [{ "id": "dnd5e", "type": "system", "compatibility": { "minimum": "5.3.0" } }],
-    "requires": [{ "id": "midi-qol", "type": "module", "compatibility": { "minimum": "14.0.0" } }]
+    "systems": [{ "id": "dnd5e", "type": "system", "compatibility": { "minimum": "6.0.0", "maximum": "6.999" } }],
+    "requires": [{ "id": "midi-qol", "type": "module", "compatibility": { "minimum": "14.6.0", "maximum": "14.999" } }]
   }
 }

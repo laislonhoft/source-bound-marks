@@ -1,5 +1,8 @@
 name: Package Foundry module
 on:
+  push:
+    branches: [main]
+    paths: [module.json]
   release:
     types: [published]
 permissions:
@@ -13,24 +16,31 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/*.test.mjs
+      - name: Select release version
+        run: echo "RELEASE_TAG=v$(node -p 'JSON.parse(require("fs").readFileSync("module.json", "utf8")).version')" >> "$GITHUB_ENV"
       - name: Build manifest and ZIP
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const manifest = JSON.parse(fs.readFileSync('module.json', 'utf8'));
           const tag = process.env.RELEASE_TAG;
           if (tag !== `v${manifest.version}`) throw new Error('Release tag must match module.json version');
+          if (process.env.EVENT_TAG && process.env.EVENT_TAG !== tag) throw new Error('Event tag must match module.json version');
           const base = `https://github.com/${process.env.GITHUB_REPOSITORY}`;
           manifest.url = base;
           manifest.manifest = `${base}/releases/latest/download/module.json`;
           manifest.download = `${base}/releases/download/${tag}/source-bound-marks.zip`;
           fs.writeFileSync('module.json', JSON.stringify(manifest, null, 2) + '\n');
           NODE
-          zip -r source-bound-marks.zip module.json scripts macros README.md
+          zip -r source-bound-marks.zip module.json scripts macros README.md CHANGELOG.md
+      - name: Publish version from main
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Marcas Vinculadas $RELEASE_TAG" --notes-file CHANGELOG.md
       - name: Upload installable assets
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: gh release upload "$RELEASE_TAG" module.json source-bound-marks.zip --clobber
