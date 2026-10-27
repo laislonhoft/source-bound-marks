@@ -1,5 +1,14 @@
 # Histórico
 
+## 0.3.1 — 27/10/2026
+
+- Corrige dano ausente de Hunter's Mark e Hex com a checagem automática de acertos do Midi desativada: listas vazias nesse modo não significam necessariamente erro do ataque.
+- Usa o resultado disponível da rolagem; quando desconhecido, pede confirmação do acerto antes de adicionar o bônus. Erros confirmados, recusa e fechamento não concedem dano.
+- Mantém a checagem automática do Midi como autoridade quando habilitada; preserva bônus de terceiros e críticos.
+- Revalida concentração após a confirmação e ignora workflows abortados.
+- Atualiza requisitos para Foundry 14.369+, D&D 5e 6.0.6+ e Midi-QOL 14.6.4+ (este requer DAE 14.6.3+).
+- 53 testes simulados, incluindo regressões do dano nos três perfis Hunter 2014/2024 e Hex. Validação no mundo do usuário ainda necessária.
+
 ## 0.3.0 — 10/10/2026
 
 - Atualiza a integração para Midi-QOL 14.6.0 e D&D 5e 6.x; APIs conferidas no sistema 6.0.6.

@@ -1,9 +1,9 @@
 # Marcas Vinculadas — D&D 5e
 
-Versão 0.3.0. Integração atualizada para Foundry VTT 14.368+, D&D 5e 6.x e Midi-QOL 14.6.0+.
+Versão 0.3.1. Integração atualizada para Foundry VTT 14.369+, D&D 5e 6.0.6+ e Midi-QOL 14.6.4+.
 Interface em português. Sem compilação e sem bibliotecas adicionais às dependências do Midi-QOL.
 
-O Midi-QOL 14.6.0 exige também **DAE 14.6.0+**, socketlib e lib-wrapper. A linha Midi-QOL 14.0.x é para D&D 5e 5.x; a linha 13.x é para Foundry 13. Elas não atendem aos requisitos desta versão.
+O Midi-QOL 14.6.4 exige também **DAE 14.6.3+**, socketlib e lib-wrapper. A linha Midi-QOL 14.0.x é para D&D 5e 5.x; a linha 13.x é para Foundry 13. Elas não atendem aos requisitos desta versão.
 
 ## Instalação
 
@@ -21,7 +21,7 @@ O ZIP também está disponível na [página de releases](https://github.com/lais
 4. Mantenha Midi-QOL e as dependências dele habilitados, com a automação de acertos, dano e concentração configurada conforme a mesa.
 5. Marque um alvo e use **Hunter's Mark** ou **Bestow Curse** diretamente na ficha. Não é necessário criar macro nem importar outra magia.
 
-Para atualizar, use **Update** no módulo na tela de configuração do Foundry e reinicie o mundo para todos os jogadores. Na instalação manual, extraia o novo ZIP sobre a pasta do módulo com o Foundry fechado. Quem continua no D&D 5e 5.3.x deve manter a versão 0.2.0; a 0.3.0 requer o sistema 6.x. As marcas existentes não precisam ser recriadas: os dados de origem e concentração foram preservados. A macro antiga pode ser mantida como alternativa manual:
+Para atualizar, use **Update** no módulo na tela de configuração do Foundry e reinicie o mundo para todos os jogadores. Na instalação manual, extraia o novo ZIP sobre a pasta do módulo com o Foundry fechado. Quem continua no D&D 5e 5.3.x deve manter a versão 0.2.0; a 0.3.1 requer o sistema 6.0.6+ e Midi-QOL 14.6.4+. As marcas existentes não precisam ser recriadas: os dados de origem e concentração foram preservados. A macro antiga pode ser mantida como alternativa manual:
 
 ```js
 await game.modules.get("source-bound-marks").api.openMenu();
@@ -37,6 +37,10 @@ Para atualizações automáticas pelo Foundry, prefira a instalação por URL de
 3. Em Bestow Curse, use a atividade com resistência. Se o alvo passar, não há marca. Se falhar, confirme que escolheu a opção de **1d8 de dano necrótico**; as outras opções da maldição continuam com a magia original.
 4. O alvo recebe um Active Effect com ícone de mira e o nome do conjurador. Um mestre precisa estar conectado, mas não precisa clicar em nada: o módulo processa a aplicação no cliente dele.
 5. Os ataques seguintes do conjurador acrescentam o dano quando acertam esse alvo. Outros atacantes não recebem esse bônus.
+
+**Checagem manual de acertos:** se `Auto check hits` estiver em `none`, o Midi deixa as listas de acertos vazias. Desde a versão 0.3.1, o módulo usa o sucesso/falha da rolagem de ataque quando disponível. Se o resultado não estiver definido, pergunta se o ataque acertou; recusar ou fechar não adiciona dano. Com a checagem automática habilitada, continua respeitando os acertos calculados pelo Midi. Não altera as configurações de aplicação de dano da mesa.
+
+O bônus aparece no resultado de dano do chat, depois da rolagem e da eventual confirmação de ataque/dano do Midi. Ele não altera a fórmula exibida inicialmente no diálogo de dano da arma. Termine as confirmações pendentes no cartão antes de conferir o resultado. Rolagens avulsas fora de um workflow do Midi não acionam a integração.
 
 O sistema original continua controlando alcance, recursos e testes. Bestow Curse em nível 5 ou superior não exige vínculo de concentração desta marca; a duração é calculada pelo nível efetivamente usado, incluindo duração permanente no nível 9. O módulo não altera a configuração de concentração da magia original: para esses níveis, desative-a no diálogo de conjuração se o item ainda a solicitar.
 
@@ -81,9 +85,9 @@ Desative qualquer automação que já acrescente o mesmo bônus dessa magia (mac
 
 ## Compatibilidade e validação
 
-Código conferido contra as releases **Midi-QOL 14.6.0** e **D&D 5e 6.0.6**, em 10/10/2026. O manifesto exige Foundry 14.368–14.999, D&D 5e 6.0.0–6.999 e Midi-QOL 14.6.0–14.999. A versão 6.0.6 é a mais recente do sistema consultada; o próprio manifesto do Midi-QOL 14.6.0 declara verificação no sistema 6.0.5. **Não houve execução deste módulo dentro de uma instalação real do Foundry.** Não se declara `verified`; a faixa de instalação não garante compatibilidade com todas as versões futuras.
+Código conferido contra as releases **Midi-QOL 14.6.4** e **D&D 5e 6.0.6**, em 27/10/2026, as mais recentes da linha Foundry 14 / D&D 6 nesta consulta. O manifesto exige Foundry 14.369–14.999, D&D 5e 6.0.6–6.999 e Midi-QOL 14.6.4–14.999, acompanhando os requisitos atuais do Midi. **Não houve execução deste módulo dentro de uma instalação real do Foundry.** Não se declara `verified`; a faixa de instalação não garante compatibilidade com todas as versões futuras.
 
-Testes locais: `node --test tests/*.test.mjs`. Os 42 testes cobrem lógica e integração simulada, incluindo cartões 6.x, nível real da conjuração, concentração nova após reconjuração, resistência e execução pelo mestre. Não substituem testes do aplicativo Foundry nem do cálculo real de resistências.
+Testes locais: `node --test tests/*.test.mjs`. Os 53 testes cobrem lógica e integração simulada, incluindo cartões 6.x, nível real da conjuração, concentração nova após reconjuração, resistência e execução pelo mestre. Não substituem testes do aplicativo Foundry nem do cálculo real de resistências.
 
 Roteiro para validar em um mundo de teste:
 
@@ -116,6 +120,7 @@ await game.modules.get("source-bound-marks").api.applyMark({
 - Foundry ActiveEffect: https://foundryvtt.com/api/classes/foundry.documents.ActiveEffect.html
 - Foundry DialogV2: https://foundryvtt.com/api/classes/foundry.applications.api.DialogV2.html
 - D&D 5e cartões: https://github.com/foundryvtt/dnd5e/blob/release-6.0.6/module/documents/chat-message.mjs
-- Midi-QOL Workflow: https://gitlab.com/tposney/midi-qol/-/blob/v14.6.0/src/module/Workflow.ts
+- Midi-QOL Workflow: https://gitlab.com/tposney/midi-qol/-/blob/v14.6.4/src/module/Workflow.ts
 
 O módulo usa `midi-qol.RollComplete` para a aplicação, `midi-qol.DamageRollComplete` e `workflow.setBonusDamageRolls` para o dano. A solicitação de marca é salva na mensagem de uso; o mestre ativo a processa uma vez. Não modifica diretamente os PV nem instala macros nas magias originais. Solicitações com falha mostram o motivo no cliente que detectou a falha; não são reaplicadas retroativamente ao abrir o mundo.
+

@@ -21,18 +21,21 @@ async function concentrationAlive(uuid) {
 }
 
 export async function addBonus(workflow) {
-  if (!workflow.actor || workflow.isFumble || !workflow.damageRolls?.length) return;
+  if (!workflow.actor || workflow.aborted || workflow.abort || workflow.isFumble || !workflow.damageRolls?.length) return;
   if (workflow.activity?.actionType === "heal" || workflow.damageRolls.every(r => ["healing", "temphp"].includes(r.options?.type))) return;
   const targets = [...(workflow.targets ?? [])];
   const isAttack = Boolean(workflow.activity?.attack);
   const hits = new Set([...(workflow.hitTargets ?? []), ...(workflow.hitTargetsEC ?? [])].map(t => t.document?.uuid ?? t.uuid));
+  // Midi intentionally empties both hit sets when autoCheckHit is "none".
+  // Empty sets mean unknown in that mode, not necessarily a missed attack.
+  const manualHits = globalThis.MidiQOL?.configSettings?.()?.autoCheckHit === "none";
   const context = {
     sourceUuid: workflow.actor.uuid, actionType: workflow.activity?.actionType,
     isAttack, isSpell: workflow.item?.type === "spell", now: game.time.worldTime
   };
   const matches = [];
   for (const target of targets) {
-    if (isAttack && !hits.has(target.document?.uuid ?? target.uuid)) continue;
+    if (isAttack && !hits.has(target.document?.uuid ?? target.uuid) && !manualHits) continue;
     for (const effect of target.actor?.effects ?? []) {
       const mark = effect.flags?.[ID]?.mark;
       if (!mark || !validEffect(effect, context.now) || !eligible(mark, context)) continue;
@@ -52,8 +55,22 @@ export async function addBonus(workflow) {
   const state = { baseRolls, rolls: [] };
   seen.set(workflow, state);
   try {
+    if (isAttack && !hits.has(targets[0].document?.uuid ?? targets[0].uuid)) {
+      let success = workflow.attackRoll?.isSuccess;
+      if (typeof success !== "boolean") {
+        success = await foundry.applications.api.DialogV2.confirm({
+          window: { title: "Marcas Vinculadas: confirmar acerto" },
+          content: `<p>O Midi-QOL está com a checagem automática de acertos desativada. O ataque contra <strong>${escape(targets[0].name ?? targets[0].actor?.name ?? "o alvo marcado")}</strong> acertou?</p><p>Confirme para incluir o dano da marca nesta rolagem.</p>`,
+          yes: { label: "Acertou: adicionar bônus" }, no: { label: "Não adicionar" }, rejectClose: false
+        });
+      }
+      if (success !== true) return;
+      // A dialog may stay open while concentration is removed or time advances.
+      if (workflow.aborted || workflow.abort || workflow.isFumble) return;
+    }
     const existing = (workflow.bonusDamageRolls ?? []).filter(r => !r.options?.[ID]);
-    for (const { mark } of matches) {
+    for (const { effect, mark } of matches) {
+      if (!validEffect(effect, game.time.worldTime) || !await concentrationAlive(mark.concentrationUuid)) continue;
       const options = bonusOptions(mark, workflow);
       options[ID] = true;
       const roll = new CONFIG.Dice.DamageRoll(mark.formula, workflow.actor.getRollData(), options);

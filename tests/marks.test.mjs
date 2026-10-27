@@ -13,6 +13,7 @@ function setup(m = mark()) {
   globalThis.ui = { notifications: { warn: t => warning.push(t), info() {} } };
   globalThis.game = { time: { worldTime: 50 }, user: { id: "gm", isGM: true }, users: { activeGM: { id: "gm" } }, actors: [], scenes: [] };
   globalThis.fromUuid = async () => null;
+  globalThis.MidiQOL = { configSettings: () => ({ autoCheckHit: "all" }) };
   globalThis.CONFIG = { Dice: { DamageRoll: class {
     constructor(formula, data, options) { Object.assign(this, { formula, data, options }); }
     async evaluate() { this.total = this.options.isCritical ? 8 : 4; return this; }
@@ -57,10 +58,78 @@ test("hit appends bonus while preserving third-party bonuses", async () => {
   assert.equal(workflow.bonusDamageRolls.length, 2); assert.equal(workflow.bonusDamageRolls[0], other);
   assert.equal(workflow.bonusDamageRolls[1].formula, "1d6");
 });
+
+for (const preset of ["hunter2014", "hunter2024", "hex"]) {
+  test(`${preset}: manual hit checking uses the successful attack roll`, async () => {
+    const { workflow } = setup(mark(preset));
+    MidiQOL.configSettings = () => ({ autoCheckHit: "none" });
+    workflow.hitTargets.clear(); // Midi 14.6.4 clears both hit sets in manual mode.
+    workflow.attackRoll = { isSuccess: true };
+    await addBonus(workflow);
+    assert.equal(workflow.bonusDamageRolls.length, 1);
+    assert.equal(workflow.bonusDamageRolls[0].options.type, preset === "hex" ? "necrotic" : preset === "hunter2024" ? "force" : "slashing");
+  });
+}
 test("misses and fumbles do not add damage", async () => {
   const { workflow } = setup(); workflow.hitTargets.clear(); await addBonus(workflow);
   assert.equal(workflow.bonusDamageRolls.length, 0);
   workflow.isFumble = true; await addBonus(workflow); assert.equal(workflow.bonusDamageRolls.length, 0);
+});
+
+for (const answer of [true, false, null]) {
+  test(`manual mode with unknown hit asks once; answer ${answer}`, async () => {
+    const { workflow } = setup(mark("hex"));
+    MidiQOL.configSettings = () => ({ autoCheckHit: "none" });
+    workflow.hitTargets.clear();
+    let prompts = 0;
+    globalThis.foundry = { applications: { api: { DialogV2: { confirm: async () => { prompts++; return answer; } } } } };
+    await addBonus(workflow);
+    await addBonus(workflow);
+    assert.equal(prompts, 1);
+    assert.equal(workflow.bonusDamageRolls.length, answer === true ? 1 : 0);
+    assert.equal(workflow.hitTargets.size, 0); // Do not change Midi's damage targeting policy.
+  });
+}
+
+test("manual mode respects a known failed attack without prompting", async () => {
+  const { workflow } = setup(mark("hex"));
+  MidiQOL.configSettings = () => ({ autoCheckHit: "none" });
+  workflow.hitTargets.clear(); workflow.attackRoll = { isSuccess: false };
+  globalThis.foundry = { applications: { api: { DialogV2: { confirm: () => assert.fail("known miss") } } } };
+  await addBonus(workflow);
+  assert.equal(workflow.bonusDamageRolls.length, 0);
+});
+
+test("automatic hit sets remain authoritative over attackRoll success", async () => {
+  const { workflow } = setup(mark("hex"));
+  workflow.hitTargets.clear(); workflow.attackRoll = { isSuccess: true };
+  await addBonus(workflow);
+  assert.equal(workflow.bonusDamageRolls.length, 0);
+});
+
+test("manual critical includes extra dice and preserves other bonus rolls", async () => {
+  const { workflow } = setup(mark("hex"));
+  MidiQOL.configSettings = () => ({ autoCheckHit: "none" });
+  workflow.hitTargets.clear(); workflow.attackRoll = { isSuccess: true }; workflow.isCritical = true;
+  const other = { options: { type: "fire" } }; workflow.bonusDamageRolls = [other];
+  await addBonus(workflow);
+  assert.equal(workflow.bonusDamageRolls[0], other);
+  assert.equal(workflow.bonusDamageRolls[1].options.isCritical, true);
+});
+
+test("concentration lost while confirming prevents bonus", async () => {
+  const { workflow } = setup(mark("hex", { concentrationUuid: "conc" }));
+  MidiQOL.configSettings = () => ({ autoCheckHit: "none" }); workflow.hitTargets.clear();
+  globalThis.fromUuid = async () => ({ statuses: new Set(["concentrating"]), duration: { remaining: 30 } });
+  globalThis.foundry = { applications: { api: { DialogV2: { confirm: async () => {
+    globalThis.fromUuid = async () => null; return true;
+  } } } } };
+  await addBonus(workflow); assert.equal(workflow.bonusDamageRolls.length, 0);
+});
+
+test("aborted damage workflows cannot add a bonus", async () => {
+  const { workflow } = setup(); workflow.abort = true;
+  await addBonus(workflow); assert.equal(workflow.bonusDamageRolls.length, 0);
 });
 test("other attackers do not receive the bonus", async () => {
   const { workflow } = setup(); workflow.actor.uuid = "Actor.other"; await addBonus(workflow);
