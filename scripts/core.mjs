@@ -14,7 +14,7 @@ export function spellProfile(item, defaultHunter = "hunter2024") {
   if (configured === "off") return null;
   if (PRESETS[configured]) return configured;
   const names = [item.name, item.system?.identifier].map(normalize);
-  if (names.some(n => ["huntersmark", "marcadocacador", "marcadocacador2014", "huntersmark2014", "huntersmark2024"].includes(n))) {
+  if (names.some(n => /^(huntersmark|marcadocacador|marcadopredador)(2014|2024)?$/.test(n))) {
     return String(item.system?.source?.rules) === "2014" || names.some(n => n.endsWith("2014")) ? "hunter2014"
       : String(item.system?.source?.rules) === "2024" || names.some(n => n.endsWith("2024")) ? "hunter2024" : defaultHunter;
   }

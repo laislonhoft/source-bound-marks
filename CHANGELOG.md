@@ -1,5 +1,11 @@
 # Histórico
 
+## 0.3.2 — 28/10/2026
+
+- Reconhece Hunter's Mark traduzida como **Marca do Predador**, incluindo o identificador `marca-do-predador` confirmado no diagnóstico do usuário. A ausência desse nome impedia a criação da solicitação de marca, sem gerar erro.
+- Aceita os sufixos 2014/2024 nas traduções Marca do Predador e Marca do Caçador, preservando a seleção de edição e a opção de desativar o perfil.
+- 55 testes simulados; inclui conjuração e aplicação pelo mestre com os dados da magia relatada. Após atualizar, conjure novamente: usos antigos sem solicitação não são reaplicados automaticamente.
+
 ## 0.3.1 — 27/10/2026
 
 - Corrige dano ausente de Hunter's Mark e Hex com a checagem automática de acertos do Midi desativada: listas vazias nesse modo não significam necessariamente erro do ataque.

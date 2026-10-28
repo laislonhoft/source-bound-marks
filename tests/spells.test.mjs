@@ -35,6 +35,26 @@ test("recognizes existing spells, translations and explicit renamed configuratio
   assert.equal(spellProfile({ type: "spell", name: "Hunter's Mark", flags: { [ID]: { profile: "off" } } }), null);
   assert.equal(spellProfile({ type: "weapon", name: "Hunter's Mark" }), null);
 });
+test("Marca do Predador from the reported card requests and applies the 2024 mark", async () => {
+  const { item, workflow, message, apply, applied } = setup();
+  item.name = "Marca do Predador";
+  item.system.identifier = "marca-do-predador";
+  await requestFromSpell(workflow);
+  assert.equal(message.flags[ID]?.request?.profile, "hunter2024");
+  await processSpellRequest(message, "player", apply);
+  assert.equal(applied.length, 1);
+  assert.equal(applied[0].preset, "hunter2024");
+  assert.equal(applied[0].concentrationUuid, "Actor.c.ActiveEffect.conc");
+});
+
+test("localized hunter aliases respect edition, identifiers and explicit opt-out", () => {
+  assert.equal(spellProfile({ type: "spell", name: "Marca do Predador (2014)" }), "hunter2014");
+  assert.equal(spellProfile({ type: "spell", name: "Marca do Caçador (2024)" }, "hunter2014"), "hunter2024");
+  assert.equal(spellProfile({ type: "spell", name: "Renamed", system: { identifier: "marca-do-predador" } }), "hunter2024");
+  assert.equal(spellProfile({ type: "spell", name: "Marca do Predador", flags: { [ID]: { profile: "off" } } }), null);
+  assert.equal(spellProfile({ type: "spell", name: "Outra Marca do Predador" }), null);
+});
+
 test("upcast durations include permanent curse", () => {
   assert.equal(castDuration("hunter2024", 3), 28800);
   assert.equal(castDuration("hunter2014", 5), 86400);
