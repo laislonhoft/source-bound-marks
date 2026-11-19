@@ -1,12 +1,13 @@
+import { normalize, spellFamily } from "./spell-names.mjs";
+export { normalize } from "./spell-names.mjs";
 export const ID = "source-bound-marks";
 export const PRESETS = Object.freeze({
-  hunter2014: { name: "Hunter's Mark (2014)", formula: "1d6", damageType: "inherit", trigger: "weapon" },
-  hunter2024: { name: "Hunter's Mark (2024)", formula: "1d6", damageType: "force", trigger: "attack" },
-  curse: { name: "Bestow Curse — dano", formula: "1d8", damageType: "necrotic", trigger: "attackOrSpell" },
-  hex: { name: "Hex — dano", formula: "1d6", damageType: "necrotic", trigger: "attack" }
+  hunter2014: { name: "Hunter's Mark / Marca do Caçador (2014)", formula: "1d6", damageType: "inherit", trigger: "weapon" },
+  hunter2024: { name: "Hunter's Mark / Marca do Predador (2024)", formula: "1d6", damageType: "force", trigger: "attack" },
+  curse: { name: "Bestow Curse / Rogar Maldição — dano", formula: "1d8", damageType: "necrotic", trigger: "attackOrSpell" },
+  hex: { name: "Hex / Bruxaria / Danação — dano", formula: "1d6", damageType: "necrotic", trigger: "attack" },
+  minorElementals2024: { name: "Conjure Minor Elementals / Conjurar Elementais Menores (2024)", formula: "2d8", damageType: "choice", trigger: "attack" }
 });
-
-export const normalize = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 export function spellProfile(item, defaultHunter = "hunter2024") {
   if (item?.type !== "spell") return null;
@@ -14,16 +15,19 @@ export function spellProfile(item, defaultHunter = "hunter2024") {
   if (configured === "off") return null;
   if (PRESETS[configured]) return configured;
   const names = [item.name, item.system?.identifier].map(normalize);
-  if (names.some(n => /^(huntersmark|marcadocacador|marcadopredador)(2014|2024)?$/.test(n))) {
+  const family = spellFamily(item.system?.identifier) ?? spellFamily(item.name);
+  if (family === "hunter") {
     return String(item.system?.source?.rules) === "2014" || names.some(n => n.endsWith("2014")) ? "hunter2014"
       : String(item.system?.source?.rules) === "2024" || names.some(n => n.endsWith("2024")) ? "hunter2024" : defaultHunter;
   }
-  if (names.some(n => ["bestowcurse", "bestoncurse", "rogarmaldicao", "lancarmaldicao", "impormaldicao"].includes(n))) return "curse";
-  if (names.some(n => ["hex", "bruxaria"].includes(n))) return "hex";
+  if (family === "curse" || family === "hex") return family;
+  if (family === "elementals" && String(item.system?.source?.rules) !== "2014" && !names.some(n => n.endsWith("2014"))
+    && (String(item.system?.source?.rules) === "2024" || names.some(n => n.endsWith("2024")))) return "minorElementals2024";
   return null;
 }
 
 export function castDuration(profile, level) {
+  if (profile === "minorElementals2024") return 600;
   if (profile === "curse") return level >= 9 ? null : level >= 7 ? 86400 : level >= 5 ? 28800 : level >= 4 ? 600 : 60;
   return level >= 5 ? 86400 : level >= 3 ? 28800 : 3600;
 }

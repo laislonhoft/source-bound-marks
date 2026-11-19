@@ -34,7 +34,7 @@ jobs:
           manifest.download = `${base}/releases/download/${tag}/source-bound-marks.zip`;
           fs.writeFileSync('module.json', JSON.stringify(manifest, null, 2) + '\n');
           NODE
-          zip -r source-bound-marks.zip module.json scripts macros README.md CHANGELOG.md
+          zip -r source-bound-marks.zip module.json scripts macros README.md CHANGELOG.md LANGUAGES.md
       - name: Publish version from main
         if: github.event_name == 'push'
         env:

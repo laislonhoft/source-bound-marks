@@ -3,6 +3,30 @@ import assert from "node:assert/strict";
 import { ID, spellProfile, castDuration } from "../scripts/core.mjs";
 import { requestFromSpell, processSpellRequest } from "../scripts/spells.mjs";
 
+test("elementals casts without a selected target and applies to its caster at the card's slot level", async () => {
+  const { item, workflow, message, source, apply, applied } = setup();
+  item.name = "Conjurar Elementais Menores"; item.system.level = 4; message.system.level = 6;
+  workflow.targets.clear(); message.system.targets = [];
+  await requestFromSpell(workflow);
+  assert.equal(message.flags[ID].request.targetUuid, source.uuid);
+  await processSpellRequest(message, "player", apply);
+  assert.equal(applied[0].target, source); assert.equal(applied[0].level, 6);
+  assert.equal(applied[0].seconds, 600); assert.equal(applied[0].preset, "minorElementals2024");
+  assert.equal(applied[0].concentrationUuid, "Actor.c.ActiveEffect.conc");
+});
+test("elementals ignores selected victims and rejects forged self target, low slot and missing concentration", async () => {
+  const { item, workflow, message, source, apply, applied } = setup();
+  item.name = "Conjure Minor Elementals"; message.system.level = 4;
+  await requestFromSpell(workflow);
+  message.flags[ID].request.targetUuid = "Actor.victim";
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /conjurador como alvo/);
+  message.flags[ID].request.targetUuid = source.uuid; message.system.level = 3;
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /entre 4 e 9/);
+  message.system.level = 4; source.effects.clear();
+  await assert.rejects(() => processSpellRequest(message, "player", apply), /Concentração/);
+  assert.equal(applied.length,0);
+});
+
 function setup(profile = "hunter2024", level = 1) {
   const user = { id: "player" };
   const activity = { id: "activity", ...(profile === "curse" ? { save: {} } : {}) };

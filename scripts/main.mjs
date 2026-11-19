@@ -1,5 +1,6 @@
 import { ID, PRESETS, eligible, validEffect, bonusOptions } from "./core.mjs";
 import { registerAutomatic, initializeSettings } from "./spells.mjs";
+import { ELEMENTALS, elementalFormula, withinEmanation, chooseElement } from "./elementals.mjs";
 
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const report = error => { console.error(ID, error); ui.notifications.error(`Marcas Vinculadas: ${error.message}`); };
@@ -38,8 +39,13 @@ export async function addBonus(workflow) {
     if (isAttack && !hits.has(target.document?.uuid ?? target.uuid) && !manualHits) continue;
     for (const effect of target.actor?.effects ?? []) {
       const mark = effect.flags?.[ID]?.mark;
-      if (!mark || !validEffect(effect, context.now) || !eligible(mark, context)) continue;
+      if (!mark || mark.preset === ELEMENTALS || !validEffect(effect, context.now) || !eligible(mark, context)) continue;
       if (await concentrationAlive(mark.concentrationUuid)) matches.push({ effect, mark });
+    }
+    for (const effect of workflow.actor.effects ?? []) {
+      const mark = effect.flags?.[ID]?.mark;
+      if (mark?.preset !== ELEMENTALS || !mark.concentrationUuid || !validEffect(effect, context.now) || !eligible(mark, context)) continue;
+      if (await concentrationAlive(mark.concentrationUuid) && withinEmanation(workflow, target)) matches.push({ effect, mark });
     }
   }
   if (!matches.length) return;
@@ -71,7 +77,14 @@ export async function addBonus(workflow) {
     const existing = (workflow.bonusDamageRolls ?? []).filter(r => !r.options?.[ID]);
     for (const { effect, mark } of matches) {
       if (!validEffect(effect, game.time.worldTime) || !await concentrationAlive(mark.concentrationUuid)) continue;
-      const options = bonusOptions(mark, workflow);
+      let selectedMark = mark;
+      if (mark.preset === ELEMENTALS) {
+        const damageType = await chooseElement();
+        if (!damageType || workflow.aborted || workflow.abort || !validEffect(effect, game.time.worldTime)
+          || !await concentrationAlive(mark.concentrationUuid) || !withinEmanation(workflow, targets[0])) continue;
+        selectedMark = { ...mark, damageType };
+      }
+      const options = bonusOptions(selectedMark, workflow);
       options[ID] = true;
       const roll = new CONFIG.Dice.DamageRoll(mark.formula, workflow.actor.getRollData(), options);
       await roll.evaluate();
@@ -84,9 +97,14 @@ export async function addBonus(workflow) {
   }
 }
 
-export async function applyMark({ source, target, preset, concentrationUuid = null, seconds = 3600, castUuid = null }) {
+export async function applyMark({ source, target, preset, concentrationUuid = null, seconds = 3600, castUuid = null, level = null }) {
   if (!game.user.isGM) throw new Error("O mestre deve aplicar ou transferir as marcas.");
   if (!source || !target || !PRESETS[preset]) throw new Error("Origem, alvo ou perfil inválido.");
+  if (preset === ELEMENTALS) {
+    elementalFormula(level);
+    if (target.uuid !== source.uuid || !concentrationUuid) throw new Error("Elementais Menores deve ser aplicado ao próprio conjurador com concentração.");
+    seconds = Math.min(Number(seconds), 600);
+  }
   if (seconds !== null) seconds = Number(seconds);
   if (seconds !== null && (!Number.isFinite(seconds) || seconds <= 0)) throw new Error("Informe uma duração positiva em segundos.");
   if (castUuid) {
@@ -101,6 +119,7 @@ export async function applyMark({ source, target, preset, concentrationUuid = nu
   }
   const mark = { ...PRESETS[preset], preset, sourceUuid: source.uuid, concentrationUuid, castUuid,
     expiresAt: seconds === null ? null : game.time.worldTime + seconds };
+  if (preset === ELEMENTALS) Object.assign(mark, { formula: elementalFormula(level), level });
   const old = allActors().flatMap(actor => [...actor.effects].filter(e => {
     const m = e.flags?.[ID]?.mark;
     return m?.sourceUuid === source.uuid && m.preset === preset;
@@ -156,7 +175,7 @@ export async function openMenu() {
   const data = await foundry.applications.api.DialogV2.input({
     window: { title: "Aplicar / transferir marca" },
     content: `<p><strong>${escape(source.name)}</strong> → <strong>${escape(target.name)}</strong></p>
-      <div class="form-group"><label>Perfil</label><select name="preset">${Object.entries(PRESETS).map(([key,p]) => `<option value="${key}">${escape(p.name)}</option>`).join("")}</select></div>
+      <div class="form-group"><label>Perfil</label><select name="preset">${Object.entries(PRESETS).filter(([key]) => key !== ELEMENTALS).map(([key,p]) => `<option value="${key}">${escape(p.name)}</option>`).join("")}</select></div>
       <div class="form-group"><label>Concentração</label><select name="concentrationUuid">${concentrations.map(e => `<option value="${escape(e.uuid)}">${escape(e.name)}</option>`).join("")}<option value="">Sem concentração</option></select></div>
       <div class="form-group"><label>Duração restante (segundos)</label><input name="seconds" type="number" min="1" value="3600" required></div>
       <p>Lance a magia antes de aplicar a marca. Escolha a concentração correspondente. Confirme resistências, alcance e recursos pela magia original.</p>

@@ -1,5 +1,13 @@
 # Histórico
 
+## 0.4.0 — 2026-11-19
+
+- Reconhecimento de Hunter's Mark, Bestow Curse, Hex e Conjure Minor Elementals em 10 idiomas: inglês, português, espanhol, francês, alemão, italiano, polonês, russo, japonês e chinês. Tabela e fontes em LANGUAGES.md; interface em português.
+- Normalização preserva alfabetos não latinos, aceita títulos bilíngues da mesma magia e sufixos de edição. Inclui Marca do Predador, Marca do Caçador, Bruxaria e Danação.
+- Conjure Minor Elementals 2024: efeito no conjurador, concentração de até 10 minutos, dano em ataques dentro de 15 pés/4,5 m, escolha de ácido/frio/fogo/elétrico por ataque e escala corrigida pela errata (+1d8 por espaço acima do 4º). A versão 2014 não é reconhecida automaticamente como esse perfil.
+- Alcance consultado no Midi-QOL; terreno difícil e desenho da emanação permanecem manuais. Uma rolagem por alvo/ataque.
+- 89 testes locais de lógica e integração simulada. Sem validação em uma sessão real de Foundry; requisitos de instalação preservados.
+
 ## 0.3.2 — 28/10/2026
 
 - Reconhece Hunter's Mark traduzida como **Marca do Predador**, incluindo o identificador `marca-do-predador` confirmado no diagnóstico do usuário. A ausência desse nome impedia a criação da solicitação de marca, sem gerar erro.
@@ -30,3 +38,4 @@
 
 - Aplicação das marcas diretamente pelas magias, integração de dano com Midi-QOL e vínculo de concentração.
 - Destinada à linha D&D 5e 5.3.x / Midi-QOL 14.0.x.
+

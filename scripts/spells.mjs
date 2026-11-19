@@ -1,5 +1,6 @@
 import { ID, PRESETS, spellProfile, castDuration, validEffect } from "./core.mjs";
 import { cardItem, cardActivity, cardConcentrationId, cardLevel, recordedTarget, failedCardSave } from "./compat.mjs";
+import { ELEMENTALS, elementalFormula } from "./elementals.mjs";
 
 const uuidOf = token => token.document?.uuid ?? token.uuid;
 const profileOf = item => spellProfile(item, game.settings.get(ID, "hunterDefault"));
@@ -19,8 +20,8 @@ export async function requestFromSpell(workflow) {
   const profile = profileOf(workflow.item);
   if (!profile) return;
   const targets = [...(workflow.targets ?? [])];
-  if (targets.length !== 1) throw new Error("Selecione um único alvo antes de lançar a magia de marca.");
-  const targetUuid = uuidOf(targets[0]);
+  if (profile !== ELEMENTALS && targets.length !== 1) throw new Error("Selecione um único alvo antes de lançar a magia de marca.");
+  const targetUuid = profile === ELEMENTALS ? workflow.item.actor.uuid : uuidOf(targets[0]);
   if (workflow.activity?.save && ![...(workflow.failedSaves ?? [])].some(t => uuidOf(t) === targetUuid)) return;
   // A curse must resolve its saving throw before its damage option can be applied.
   if (profile === "curse" && !workflow.activity?.save) throw new Error("Bestow Curse precisa usar uma atividade com teste de resistência no Midi-QOL.");
@@ -62,7 +63,8 @@ export async function processSpellRequest(message, userId, applyMark) {
   if (!profile || profile !== request.profile) throw new Error("O perfil da magia mudou ou está desativado.");
   const activity = cardActivity(message, item);
   if (!activity || activity.id !== request.activityId || (activity.item && activity.item.uuid !== item.uuid)) throw new Error("Atividade da magia não corresponde à mensagem de uso.");
-  if (Array.isArray(message.system?.targets) && !recordedTarget(message, request.targetUuid)) {
+  if (profile === ELEMENTALS && request.targetUuid !== source.uuid) throw new Error("Elementais Menores deve ter o conjurador como alvo.");
+  if (profile !== ELEMENTALS && Array.isArray(message.system?.targets) && !recordedTarget(message, request.targetUuid)) {
     throw new Error("O alvo não está registrado na mensagem da magia.");
   }
   if (profile === "curse" && !activity.save) throw new Error("A maldição não tem teste de resistência configurado.");
@@ -71,10 +73,11 @@ export async function processSpellRequest(message, userId, applyMark) {
       throw new Error("Não há uma resistência falha registrada para esse alvo.");
     }
   }
-  const token = await fromUuid(request.targetUuid);
-  if (token?.documentName !== "Token" || !token.actor) throw new Error("Alvo da magia não encontrado.");
+  const token = profile === ELEMENTALS ? null : await fromUuid(request.targetUuid);
+  if (profile !== ELEMENTALS && (token?.documentName !== "Token" || !token.actor)) throw new Error("Alvo da magia não encontrado.");
   const level = cardLevel(message, item);
   if (!Number.isInteger(level) || level < 1 || level > 9) throw new Error("Nível de conjuração inválido.");
+  if (profile === ELEMENTALS) elementalFormula(level);
   let concentrationUuid = null;
   const needsConcentration = profile !== "curse" || level < 5;
   if (needsConcentration) {
@@ -91,7 +94,7 @@ export async function processSpellRequest(message, userId, applyMark) {
   if (!Number.isFinite(age)) throw new Error("Tempo de conjuração inválido.");
   if (seconds !== null) seconds -= age;
   if (seconds !== null && seconds <= 0) throw new Error("A duração dessa magia já terminou.");
-  const effect = await applyMark({ source, target: token.actor, preset: profile, concentrationUuid, seconds, castUuid: message.uuid });
+  const effect = await applyMark({ source, target: profile === ELEMENTALS ? source : token.actor, preset: profile, concentrationUuid, seconds, castUuid: message.uuid, level });
   await message.setFlag(ID, "result", { effectUuid: effect.uuid, applied: true });
 }
 
