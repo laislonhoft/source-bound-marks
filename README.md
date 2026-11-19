@@ -1,11 +1,15 @@
 # Marcas Vinculadas — D&D 5e
 
-Versão 0.4.0. Integração atualizada para Foundry VTT 14.369+, D&D 5e 6.0.6+ e Midi-QOL 14.6.4+.
+Versão 0.5.0. Integração atualizada para Foundry VTT 14.369+, D&D 5e 6.0.6+ e Midi-QOL 14.6.4+.
 **Reconhecimento de magias em 10 idiomas: inglês, português, espanhol, francês, alemão, italiano, polonês, russo, japonês e chinês.**
 
 **Spell-name recognition in 10 languages.** Veja a [tabela de nomes e fontes](LANGUAGES.md). A interface continua em português. Sem compilação e sem bibliotecas adicionais às dependências do Midi-QOL.
 
 O Midi-QOL 14.6.4 exige também **DAE 14.6.3+**, socketlib e lib-wrapper. A linha Midi-QOL 14.0.x é para D&D 5e 5.x; a linha 13.x é para Foundry 13. Elas não atendem aos requisitos desta versão.
+
+## Estilos de luta e talentos de 2024
+
+**Novo na 0.5.0:** Great Weapon Fighting, Great Weapon Master, Duelismo, Armas de Arremesso e Duas Armas. Funcionam a partir das características da ficha; o botão **Combate** permite selecionar ou desativar o perfil. Consulte [uso, condições e limites](COMBAT.md). Os 10 idiomas acima referem-se às magias; os novos estilos reconhecem nomes em inglês/português e identificadores ingleses, com escolha manual para outros nomes.
 
 ## Instalação
 
@@ -23,7 +27,7 @@ O ZIP também está disponível na [página de releases](https://github.com/lais
 4. Mantenha Midi-QOL e as dependências dele habilitados, com a automação de acertos, dano e concentração configurada conforme a mesa.
 5. Marque um alvo e use **Hunter's Mark**, **Hex** ou **Bestow Curse** diretamente na ficha. Não é necessário criar macro nem importar outra magia.
 
-Para atualizar, use **Update** no módulo na tela de configuração do Foundry e reinicie o mundo para todos os jogadores. Na instalação manual, extraia o novo ZIP sobre a pasta do módulo com o Foundry fechado. Quem continua no D&D 5e 5.3.x deve manter a versão 0.2.0; a 0.4.0 requer o sistema 6.0.6+ e Midi-QOL 14.6.4+. As marcas existentes não precisam ser recriadas: os dados de origem e concentração foram preservados. A macro antiga pode ser mantida como alternativa manual:
+Para atualizar, use **Update** no módulo na tela de configuração do Foundry e reinicie o mundo para todos os jogadores. Na instalação manual, extraia o novo ZIP sobre a pasta do módulo com o Foundry fechado. Quem continua no D&D 5e 5.3.x deve manter a versão 0.2.0; a 0.5.0 requer o sistema 6.0.6+ e Midi-QOL 14.6.4+. As marcas existentes não precisam ser recriadas: os dados de origem e concentração foram preservados. A macro antiga pode ser mantida como alternativa manual:
 
 ```js
 await game.modules.get("source-bound-marks").api.openMenu();
@@ -100,7 +104,7 @@ Desative qualquer automação que já acrescente o mesmo bônus dessa magia (mac
 
 Código conferido contra as releases **Midi-QOL 14.6.4** e **D&D 5e 6.0.6**, em 27/10/2026, as mais recentes da linha Foundry 14 / D&D 6 nesta consulta. O manifesto exige Foundry 14.369–14.999, D&D 5e 6.0.6–6.999 e Midi-QOL 14.6.4–14.999, acompanhando os requisitos atuais do Midi. **Não houve execução deste módulo dentro de uma instalação real do Foundry.** Não se declara `verified`; a faixa de instalação não garante compatibilidade com todas as versões futuras.
 
-Testes locais: `node --test tests/*.test.mjs`. Os 89 testes cobrem lógica e integração simulada, incluindo cartões 6.x, nível real da conjuração, concentração nova após reconjuração, resistência e execução pelo mestre. Também cobrem os nomes nos dez idiomas, conjuração de Elementais Menores sem alvo, nível de espaço, alcance em pés/metros, escolha de dano, crítico e perda de concentração durante o diálogo. Não substituem testes do aplicativo Foundry nem do cálculo real de resistências.
+Testes locais: `node --test tests/*.test.mjs`. Os 114 testes cobrem lógica e integração simulada, incluindo cartões 6.x, nível real da conjuração, concentração nova após reconjuração, resistência e execução pelo mestre. Também cobrem os nomes nos dez idiomas, conjuração de Elementais Menores sem alvo, nível de espaço, alcance em pés/metros, escolha de dano, crítico e perda de concentração durante o diálogo. Não substituem testes do aplicativo Foundry nem do cálculo real de resistências.
 
 Roteiro para validar em um mundo de teste:
 

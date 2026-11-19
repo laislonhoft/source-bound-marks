@@ -1,11 +1,11 @@
 {
   "id": "source-bound-marks",
   "title": "Marcas Vinculadas — D&D 5e",
-  "description": "Marcas e Elementais Menores (2024), dano por origem e concentração. Reconhecimento de magias em 10 idiomas; interface em português. Requer Midi-QOL.",
-  "version": "0.4.0",
+  "description": "Marcas, Elementais Menores e estilos de luta/talentos de 2024. Magias em 10 idiomas; interface em português. Requer Midi-QOL.",
+  "version": "0.5.0",
   "url": "https://github.com/laislonhoft/source-bound-marks",
   "manifest": "https://github.com/laislonhoft/source-bound-marks/releases/latest/download/module.json",
-  "download": "https://github.com/laislonhoft/source-bound-marks/releases/download/v0.4.0/source-bound-marks.zip",
+  "download": "https://github.com/laislonhoft/source-bound-marks/releases/download/v0.5.0/source-bound-marks.zip",
   "compatibility": {
     "minimum": "14.369",
     "maximum": "14.999"

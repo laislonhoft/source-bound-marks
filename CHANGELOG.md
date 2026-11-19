@@ -1,5 +1,13 @@
 # Histórico
 
+## 0.5.0 — 2026-11-19
+
+- Cinco perfis de combate 2024: Great Weapon Fighting, Great Weapon Master, Duelismo, Armas de Arremesso e Duas Armas, sem macros na ficha.
+- Botão Combate nas características para selecionar/desativar o perfil; reconhecimento automático exige edição 2024.
+- Mínimo 3 apenas nos dados básicos da arma; proficiência de GWM mediante confirmação de ação Atacar no próprio turno; lembrete de Hew sem conceder ataque grátis.
+- Usa as parcelas e empunhadura do sistema; ignora automações equivalentes detectadas. Arquearia/Defesa permanecem nativas.
+- 114 testes simulados aprovados. Leia COMBAT.md para condições e limites; sem validação em uma sessão real do Foundry.
+
 ## 0.4.0 — 2026-11-19
 
 - Reconhecimento de Hunter's Mark, Bestow Curse, Hex e Conjure Minor Elementals em 10 idiomas: inglês, português, espanhol, francês, alemão, italiano, polonês, russo, japonês e chinês. Tabela e fontes em LANGUAGES.md; interface em português.

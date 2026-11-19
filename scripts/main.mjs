@@ -1,6 +1,7 @@
 import { ID, PRESETS, eligible, validEffect, bonusOptions } from "./core.mjs";
 import { registerAutomatic, initializeSettings } from "./spells.mjs";
 import { ELEMENTALS, elementalFormula, withinEmanation, chooseElement } from "./elementals.mjs";
+import { registerFighting } from "./fighting.mjs";
 
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const report = error => { console.error(ID, error); ui.notifications.error(`Marcas Vinculadas: ${error.message}`); };
@@ -195,6 +196,7 @@ Hooks.once("ready", () => {
   }
   Hooks.on("midi-qol.DamageRollComplete", workflow => addBonus(workflow).catch(report));
   registerAutomatic({ applyMark, report });
+  registerFighting(report);
   Hooks.on("deleteActiveEffect", scheduleCleanup);
   Hooks.on("updateActiveEffect", scheduleCleanup);
   Hooks.on("updateWorldTime", scheduleCleanup);
